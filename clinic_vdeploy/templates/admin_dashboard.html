@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}لوحة تحكم المدير{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <h4 class="fw-bold mb-4"><i class="bi bi-speedometer2 text-primary me-2"></i>لوحة تحكم المدير</h4>
+
+    <!-- كروت الإحصاء -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card" style="background:linear-gradient(135deg,#1a9e6a,#27ae60)">
+                <div class="stat-num">{{ "%.0f"|format(rev) }} ج</div>
+                <div class="stat-label"><i class="bi bi-arrow-up-circle me-1"></i>إجمالي الإيرادات</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card" style="background:linear-gradient(135deg,#c0392b,#e74c3c)">
+                <div class="stat-num">{{ "%.0f"|format(exp) }} ج</div>
+                <div class="stat-label"><i class="bi bi-arrow-down-circle me-1"></i>إجمالي المصاريف</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card" style="background:linear-gradient(135deg,#1a6eb5,#2196f3)">
+                <div class="stat-num">{{ "%.0f"|format(net) }} ج</div>
+                <div class="stat-label"><i class="bi bi-graph-up me-1"></i>صافي الأرباح</div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="stat-card" style="background:linear-gradient(135deg,#8e44ad,#9b59b6)">
+                <div class="stat-num">{{ total_patients }}</div>
+                <div class="stat-label"><i class="bi bi-people me-1"></i>إجمالي المرضى</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- تنبيهات المخزن + مصروف سريع -->
+    <div class="row g-4 mb-4">
+        <!-- تنبيهات المخزن -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header {% if low_stock %}bg-danger text-white{% else %}bg-success text-white{% endif %}">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    تنبيهات المخزن
+                    {% if low_stock %}
+                    <span class="badge bg-white text-danger ms-1">{{ low_stock|length }} صنف</span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    {% if low_stock %}
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <thead><tr><th>الصنف</th><th>الكمية الحالية</th><th>الحد الأدنى</th><th></th></tr></thead>
+                            <tbody>
+                                {% for item in low_stock %}
+                                <tr class="low-stock-row">
+                                    <td class="fw-bold">{{ item.item_name }}</td>
+                                    <td><span class="badge bg-danger">{{ item.quantity }} {{ item.unit or '' }}</span></td>
+                                    <td class="text-muted">{{ item.min_quantity }}</td>
+                                    <td>
+                                        <a href="{{ url_for('manage_inventory') }}" class="btn btn-sm btn-outline-danger">تحديث</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-check-circle-fill text-success display-5 d-block mb-2"></i>
+                        المخزن كويس، مفيش أصناف على وشك النفاد
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- مصروف سريع -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100 border-start border-danger border-4">
+                <div class="card-header bg-white border-0">
+                    <span class="fw-bold text-danger"><i class="bi bi-plus-circle-fill me-1"></i>إضافة مصروف سريع</span>
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('manage_finances') }}" method="POST">
+                        <input type="hidden" name="entry_type" value="expense">
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <select name="category" class="form-select" required>
+                                    <option value="" disabled selected>نوع المصروف</option>
+                                    <option value="صيانة">🔧 صيانة</option>
+                                    <option value="كهرباء">💡 كهرباء</option>
+                                    <option value="مرتبات">👥 مرتبات</option>
+                                    <option value="إيجار">🏠 إيجار</option>
+                                    <option value="مستلزمات">📦 مستلزمات</option>
+                                    <option value="أخرى">📝 أخرى</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <input type="number" name="amount" class="form-control"
+                                       placeholder="المبلغ (ج.م)" required min="0" step="0.5">
+                            </div>
+                            <div class="col-6">
+                                <input type="text" name="desc" class="form-control" placeholder="وصف مختصر">
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-danger w-100">
+                                    <i class="bi bi-plus-lg me-1"></i> تسجيل المصروف
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- أزرار التنقل السريع -->
+    <div class="row g-3">
+        <div class="col-md-4">
+            <a href="{{ url_for('manage_inventory') }}" class="card shadow-sm text-decoration-none h-100">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-box-seam display-4 text-warning d-block mb-2"></i>
+                    <h5 class="fw-bold">إدارة المخزن</h5>
+                    <p class="text-muted small mb-0">متابعة المستلزمات الطبية</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('manage_finances') }}" class="card shadow-sm text-decoration-none h-100">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-cash-coin display-4 text-info d-block mb-2"></i>
+                    <h5 class="fw-bold">الحسابات والمالية</h5>
+                    <p class="text-muted small mb-0">إيرادات ومصاريف تفصيلية</p>
+                </div>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('manage_users') }}" class="card shadow-sm text-decoration-none h-100">
+                <div class="card-body text-center py-4">
+                    <i class="bi bi-person-gear display-4 text-primary d-block mb-2"></i>
+                    <h5 class="fw-bold">إدارة الموظفين</h5>
+                    <p class="text-muted small mb-0">إضافة وإدارة المستخدمين</p>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

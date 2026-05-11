@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ clinic.name }} - تفاصيل{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h4 class="fw-bold mb-0"><i class="bi bi-hospital text-primary me-2"></i>{{ clinic.name }}</h4>
+            <small class="text-muted">{{ clinic.doctor_name }} | {{ clinic.specialty }}</small>
+        </div>
+        <a href="{{ url_for('super_dashboard') }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-arrow-right me-1"></i>رجوع</a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-sm-4">
+            <div class="stat-card" style="background:linear-gradient(135deg,#1a9e6a,#27ae60)">
+                <div class="stat-num">{{ "%.0f"|format(rev) }} ج</div>
+                <div class="stat-label">إجمالي الإيرادات</div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="stat-card" style="background:linear-gradient(135deg,#c0392b,#e74c3c)">
+                <div class="stat-num">{{ "%.0f"|format(exp) }} ج</div>
+                <div class="stat-label">إجمالي المصاريف</div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="stat-card" style="background:linear-gradient(135deg,#1a6eb5,#2196f3)">
+                <div class="stat-num">{{ "%.0f"|format(net) }} ج</div>
+                <div class="stat-label">صافي الأرباح</div>
+            </div>
+        </div>
+    </div>
+
+    {% if low_stock %}
+    <div class="alert alert-danger mb-4">
+        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+        <strong>تنبيه مخزن:</strong>
+        {% for item in low_stock %}<span class="badge bg-danger ms-1">{{ item.item_name }} ({{ item.quantity }})</span>{% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-dark text-white d-flex justify-content-between">
+            <span><i class="bi bi-list-check me-1"></i>زيارات اليوم</span>
+            <span class="badge bg-secondary">{{ visits|length }}</span>
+        </div>
+        <div class="card-body p-0">
+            <table class="table table-hover mb-0">
+                <thead><tr><th>#</th><th>المريض</th><th>نوع الزيارة</th><th>الوقت</th><th>الحالة</th></tr></thead>
+                <tbody>
+                    {% for visit, patient in visits %}
+                    <tr>
+                        <td class="text-muted fw-bold">{{ loop.index }}</td>
+                        <td><strong>{{ patient.name }}</strong></td>
+                        <td>{{ visit.visit_type }}</td>
+                        <td class="text-muted small">{{ visit.visit_date.strftime('%I:%M %p') }}</td>
+                        <td>
+                            {% if visit.status == 'waiting' %}<span class="badge-waiting">انتظار</span>
+                            {% else %}<span class="badge-done">تم</span>{% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-3">لا توجد زيارات اليوم</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

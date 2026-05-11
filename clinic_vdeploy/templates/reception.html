@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+{% block title %}الاستقبال - العيادة{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Stats -->
+    <div class="row g-3 mb-4">
+        <div class="col-auto">
+            <h4 class="fw-bold mb-0"><i class="bi bi-person-lines-fill text-primary me-2"></i>لوحة الاستقبال</h4>
+            <small class="text-muted">{{ now().strftime('%A، %d %B %Y') if now is defined else '' }}</small>
+        </div>
+        <div class="col-auto ms-auto d-flex gap-3">
+            <div class="stat-card" style="background:linear-gradient(135deg,#f39c12,#e67e22); min-width:130px">
+                <div class="stat-num">{{ waiting_count }}</div>
+                <div class="stat-label"><i class="bi bi-hourglass-split me-1"></i>في الانتظار</div>
+            </div>
+            <div class="stat-card" style="background:linear-gradient(135deg,#1a9e6a,#27ae60); min-width:130px">
+                <div class="stat-num">{{ done_count }}</div>
+                <div class="stat-label"><i class="bi bi-check-circle me-1"></i>تم الكشف</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- ── قسم إضافة مريض ── -->
+        <div class="col-lg-4">
+            <!-- تبويبات: جديد / قديم -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <ul class="nav nav-pills nav-fill" id="patientTab" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active text-white" id="new-tab" data-bs-toggle="pill"
+                                    data-bs-target="#newPatient" type="button">
+                                <i class="bi bi-person-plus-fill me-1"></i> مريض جديد
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link text-white" id="returning-tab" data-bs-toggle="pill"
+                                    data-bs-target="#returningPatient" type="button">
+                                <i class="bi bi-arrow-repeat me-1"></i> مريض قديم
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card-body tab-content p-4">
+                    <!-- مريض جديد -->
+                    <div class="tab-pane fade show active" id="newPatient">
+                        <form action="{{ url_for('nurse_dashboard') }}" method="POST">
+                            <input type="hidden" name="action" value="new_patient">
+                            <div class="mb-3">
+                                <label>اسم المريض</label>
+                                <input type="text" name="name" class="form-control" placeholder="الاسم الثلاثي" required>
+                            </div>
+                            <div class="mb-3">
+                                <label>رقم الهاتف</label>
+                                <input type="text" name="phone" class="form-control" placeholder="01xxxxxxxxx" required>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label>السن</label>
+                                    <input type="number" name="age" class="form-control" min="1" max="120">
+                                </div>
+                                <div class="col-6">
+                                    <label>الجنس</label>
+                                    <select name="gender" class="form-select">
+                                        <option value="ذكر">ذكر</option>
+                                        <option value="أنثى">أنثى</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label>نوع الزيارة</label>
+                                <select name="visit_type" class="form-select">
+                                    <option value="كشف جديد">كشف جديد</option>
+                                    <option value="استشارة">استشارة</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label>ملاحظات (أمراض مزمنة...)</label>
+                                <textarea name="notes" class="form-control" rows="2" placeholder="سكري، ضغط..."></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-person-check-fill me-1"></i> تسجيل ودخول للكشف
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- مريض قديم -->
+                    <div class="tab-pane fade" id="returningPatient">
+                        <div class="mb-3">
+                            <label>ابحث عن المريض</label>
+                            <input type="text" id="patientSearch" class="form-control"
+                                   placeholder="اكتب الاسم أو الهاتف..." autocomplete="off">
+                            <div id="searchResults" class="list-group mt-2"></div>
+                        </div>
+
+                        <form action="{{ url_for('nurse_dashboard') }}" method="POST" id="returningForm">
+                            <input type="hidden" name="action" value="returning_patient">
+                            <input type="hidden" name="patient_id" id="selectedPatientId">
+
+                            <div id="selectedPatientInfo" class="alert alert-info d-none mb-3">
+                                <strong id="selectedPatientName"></strong>
+                                <span class="text-muted ms-2" id="selectedPatientPhone"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label>نوع الزيارة</label>
+                                <select name="visit_type" class="form-select">
+                                    <option value="إعادة">إعادة</option>
+                                    <option value="استشارة">استشارة</option>
+                                    <option value="كشف جديد">كشف جديد</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-success w-100" id="addReturnBtn" disabled>
+                                <i class="bi bi-arrow-repeat me-1"></i> إضافة للانتظار
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── قائمة الزيارات اليوم ── -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-list-check me-2"></i>قائمة زيارات اليوم</span>
+                    <span class="badge bg-secondary">{{ visits|length }} زيارة</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>المريض</th>
+                                    <th>الهاتف</th>
+                                    <th>نوع الزيارة</th>
+                                    <th>الوقت</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for visit, patient in visits %}
+                                <tr>
+                                    <td class="text-muted fw-bold">{{ loop.index }}</td>
+                                    <td>
+                                        <strong>{{ patient.name }}</strong>
+                                        {% if patient.notes %}
+                                        <i class="bi bi-info-circle text-warning ms-1" title="{{ patient.notes }}" data-bs-toggle="tooltip"></i>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ patient.phone }}</td>
+                                    <td><span class="badge bg-light text-dark border">{{ visit.visit_type }}</span></td>
+                                    <td class="text-muted small">{{ visit.visit_date.strftime('%I:%M %p') }}</td>
+                                    <td>
+                                        {% if visit.status == 'waiting' %}
+                                        <span class="badge-waiting"><i class="bi bi-hourglass-split me-1"></i>انتظار</span>
+                                        {% else %}
+                                        <span class="badge-done"><i class="bi bi-check-circle me-1"></i>تم</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="d-flex gap-1">
+                                            {% if visit.status == 'done' %}
+                                            <a href="{{ url_for('print_prescription', visit_id=visit.id) }}"
+                                               class="btn btn-sm btn-outline-primary" target="_blank" title="عرض الروشتة">
+                                                <i class="bi bi-file-medical"></i>
+                                            </a>
+                                            <a href="{{ url_for('generate_whatsapp', visit_id=visit.id) }}"
+                                               class="btn btn-sm btn-outline-success" title="إرسال واتساب">
+                                                <i class="bi bi-whatsapp"></i>
+                                            </a>
+                                            {% else %}
+                                            <span class="text-muted small">في انتظار الطبيب</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-5">
+                                        <i class="bi bi-inbox display-6 d-block mb-2 opacity-25"></i>
+                                        لا توجد زيارات مسجلة اليوم
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// البحث عن مريض قديم
+const searchInput = document.getElementById('patientSearch');
+const resultsDiv = document.getElementById('searchResults');
+
+searchInput.addEventListener('input', async function() {
+    const q = this.value.trim();
+    if (q.length < 2) { resultsDiv.innerHTML = ''; return; }
+
+    const res = await fetch(`/search_patients?q=${encodeURIComponent(q)}`);
+    const patients = await res.json();
+
+    resultsDiv.innerHTML = patients.map(p => `
+        <button type="button" class="list-group-item list-group-item-action"
+                onclick="selectPatient(${p.id}, '${p.name}', '${p.phone}')">
+            <strong>${p.name}</strong>
+            <span class="text-muted small ms-2">${p.phone}</span>
+            ${p.age ? `<span class="badge bg-light text-dark ms-1">${p.age} سنة</span>` : ''}
+        </button>
+    `).join('') || '<div class="list-group-item text-muted">لا يوجد نتائج</div>';
+});
+
+function selectPatient(id, name, phone) {
+    document.getElementById('selectedPatientId').value = id;
+    document.getElementById('selectedPatientName').textContent = name;
+    document.getElementById('selectedPatientPhone').textContent = phone;
+    document.getElementById('selectedPatientInfo').classList.remove('d-none');
+    document.getElementById('addReturnBtn').disabled = false;
+    resultsDiv.innerHTML = '';
+    searchInput.value = '';
+}
+
+// تفعيل التولتيبات
+const tooltipEls = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+tooltipEls.forEach(el => new bootstrap.Tooltip(el));
+</script>
+{% endblock %}

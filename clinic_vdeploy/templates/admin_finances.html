@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}إدارة المالية{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h4 class="fw-bold mb-0"><i class="bi bi-cash-coin text-info me-2"></i>المالية - {{ clinic.name }}</h4>
+        <a href="{{ url_for('super_dashboard') if current_user.role == 'superadmin' else url_for('doctor_dashboard') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-right me-1"></i> رجوع
+        </a>
+    </div>
+
+    <!-- ملخص -->
+    <div class="row g-3 mb-4">
+        <div class="col-sm-4">
+            <div class="stat-card" style="background:linear-gradient(135deg,#1a9e6a,#27ae60)">
+                <div class="stat-num">{{ "%.0f"|format(total_income) }} ج</div>
+                <div class="stat-label"><i class="bi bi-arrow-up-circle me-1"></i>إجمالي الإيرادات</div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="stat-card" style="background:linear-gradient(135deg,#c0392b,#e74c3c)">
+                <div class="stat-num">{{ "%.0f"|format(total_expense) }} ج</div>
+                <div class="stat-label"><i class="bi bi-arrow-down-circle me-1"></i>إجمالي المصاريف</div>
+            </div>
+        </div>
+        <div class="col-sm-4">
+            <div class="stat-card" style="background:linear-gradient(135deg,#1a6eb5,#2196f3)">
+                <div class="stat-num">{{ "%.0f"|format(total_income - total_expense) }} ج</div>
+                <div class="stat-label"><i class="bi bi-graph-up me-1"></i>صافي الربح</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- فورم الإضافة -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white fw-bold">
+                    <i class="bi bi-plus-circle-fill me-1"></i> تسجيل قيد جديد
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('manage_finances', clinic_id=clinic.id) }}" method="POST">
+                        <div class="mb-3">
+                            <label>نوع القيد</label>
+                            <div class="d-flex gap-2">
+                                <div class="form-check flex-fill">
+                                    <input class="form-check-input" type="radio" name="entry_type" value="expense" id="exp" checked>
+                                    <label class="form-check-label text-danger fw-bold" for="exp">مصروف</label>
+                                </div>
+                                <div class="form-check flex-fill">
+                                    <input class="form-check-input" type="radio" name="entry_type" value="income" id="inc">
+                                    <label class="form-check-label text-success fw-bold" for="inc">إيراد</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label>التصنيف</label>
+                            <select name="category" class="form-select" required>
+                                <option value="كشف">💊 كشف</option>
+                                <option value="صيانة">🔧 صيانة</option>
+                                <option value="كهرباء">💡 كهرباء</option>
+                                <option value="مرتبات">👥 مرتبات</option>
+                                <option value="إيجار">🏠 إيجار</option>
+                                <option value="مستلزمات">📦 مستلزمات</option>
+                                <option value="أخرى">📝 أخرى</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label>المبلغ (ج.م)</label>
+                            <input type="number" name="amount" class="form-control" min="0" step="0.5" required placeholder="0.00">
+                        </div>
+                        <div class="mb-3">
+                            <label>الوصف</label>
+                            <input type="text" name="desc" class="form-control" placeholder="وصف مختصر (اختياري)">
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-plus-lg me-1"></i> تسجيل
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول القيود -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white d-flex justify-content-between">
+                    <span><i class="bi bi-journal-text me-1"></i> سجل القيود</span>
+                    <span class="badge bg-secondary">{{ entries|length }} قيد</span>
+                </div>
+                <div class="card-body p-0" style="max-height:600px; overflow-y:auto;">
+                    <table class="table table-hover mb-0">
+                        <thead style="position:sticky; top:0; z-index:1;">
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>النوع</th>
+                                <th>التصنيف</th>
+                                <th>الوصف</th>
+                                <th>المبلغ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for entry in entries %}
+                            <tr>
+                                <td class="small text-muted">{{ entry.date.strftime('%d/%m %I:%M %p') }}</td>
+                                <td>
+                                    {% if entry.entry_type == 'income' %}
+                                    <span class="badge bg-success">إيراد</span>
+                                    {% else %}
+                                    <span class="badge bg-danger">مصروف</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ entry.category }}</td>
+                                <td class="small text-muted">{{ entry.description or '—' }}</td>
+                                <td class="fw-bold {% if entry.entry_type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                                    {{ "%.2f"|format(entry.amount) }} ج
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-4">لا يوجد قيود مسجلة</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

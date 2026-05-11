@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block title %}سجل {{ patient.name }}{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a href="{{ url_for('doctor_search') }}" class="text-decoration-none">
+                    <i class="bi bi-arrow-right me-1"></i>البحث
+                </a>
+            </li>
+            <li class="breadcrumb-item active fw-bold">{{ patient.name }}</li>
+        </ol>
+    </nav>
+
+    <!-- بيانات المريض -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3 text-center">
+                <div class="col"><div class="text-muted small">الاسم</div><div class="fw-bold fs-5">{{ patient.name }}</div></div>
+                <div class="col"><div class="text-muted small">الهاتف</div><div class="fw-bold">{{ patient.phone }}</div></div>
+                <div class="col"><div class="text-muted small">السن</div><div class="fw-bold">{{ patient.age or '—' }}</div></div>
+                <div class="col"><div class="text-muted small">الجنس</div><div class="fw-bold">{{ patient.gender or '—' }}</div></div>
+                <div class="col"><div class="text-muted small">إجمالي الزيارات</div><div class="fw-bold text-primary">{{ visits|length }}</div></div>
+            </div>
+            {% if patient.notes %}
+            <div class="alert alert-warning mt-3 mb-0 py-2">
+                <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                <strong>ملاحظات دائمة:</strong> {{ patient.notes }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- فلتر التاريخ -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body py-2">
+            <form method="GET" class="d-flex gap-2 align-items-center flex-wrap">
+                <label class="fw-bold mb-0"><i class="bi bi-calendar3 me-1 text-primary"></i>بحث بتاريخ يوم:</label>
+                <input type="date" name="date" class="form-control" style="width:180px"
+                       value="{{ date_filter or '' }}">
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-search me-1"></i>عرض
+                </button>
+                {% if date_filter %}
+                <a href="{{ url_for('patient_history', patient_id=patient.id) }}" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-x me-1"></i>كل الزيارات
+                </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- سجل الزيارات -->
+    <h5 class="fw-bold mb-3">
+        <i class="bi bi-clock-history text-primary me-2"></i>
+        سجل الزيارات
+        {% if date_filter %}<span class="badge bg-primary ms-2">{{ date_filter }}</span>{% endif %}
+    </h5>
+
+    {% if visits %}
+    <div class="row g-3">
+        {% for v in visits %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm h-100
+                {% if v.status == 'waiting' %}border-start border-warning border-3
+                {% elif v.status == 'done' %}border-start border-success border-3
+                {% else %}border-start border-secondary border-3{% endif %}">
+                <div class="card-body">
+                    <!-- تاريخ ونوع الزيارة -->
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-primary">{{ v.visit_date.strftime('%d/%m/%Y') }}</span>
+                        <span class="badge bg-light text-dark border">{{ v.visit_type }}</span>
+                    </div>
+
+                    <!-- حالة الزيارة -->
+                    <div class="mb-2">
+                        {% if v.status == 'waiting' %}
+                        <span class="badge-waiting"><i class="bi bi-hourglass-split me-1"></i>في الانتظار</span>
+                        {% elif v.status == 'archived' %}
+                        <span class="badge bg-secondary"><i class="bi bi-archive me-1"></i>أرشيف</span>
+                        {% else %}
+                        <span class="badge-done"><i class="bi bi-check-circle me-1"></i>تم الكشف</span>
+                        {% endif %}
+                        {% if v.price %}
+                        <span class="text-success small ms-2"><i class="bi bi-cash me-1"></i>{{ v.price }} ج.م</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- التشخيص -->
+                    {% if v.diagnosis %}
+                    <p class="small text-muted mb-2" style="white-space:pre-wrap; max-height:80px; overflow:hidden;">
+                        {{ v.diagnosis[:150] }}{% if v.diagnosis|length > 150 %}...{% endif %}
+                    </p>
+                    {% endif %}
+
+                    <!-- موعد المراجعة -->
+                    {% if v.consultation_date %}
+                    <div class="small text-info mb-2">
+                        <i class="bi bi-calendar-check me-1"></i>{{ v.consultation_date }}
+                    </div>
+                    {% endif %}
+
+                    <!-- المرفقات -->
+                    {% if attachments_map[v.id] %}
+                    <div class="mb-2">
+                        <div class="text-muted small fw-bold mb-1"><i class="bi bi-paperclip me-1"></i>المرفقات ({{ attachments_map[v.id]|length }})</div>
+                        <div class="d-flex flex-wrap gap-1">
+                            {% for att in attachments_map[v.id] %}
+                            <a href="{{ url_for('static', filename='uploads/' + att.file_path) }}"
+                               target="_blank"
+                               class="btn btn-sm btn-outline-{% if att.file_type == 'image' %}primary{% else %}danger{% endif %}"
+                               title="{{ att.file_path }}">
+                                <i class="bi bi-{% if att.file_type == 'image' %}image{% else %}file-pdf{% endif %}"></i>
+                                {{ loop.index }}
+                            </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- زرار الروشتة -->
+                    {% if v.status in ['done', 'archived'] and v.diagnosis %}
+                    <a href="{{ url_for('print_prescription', visit_id=v.id) }}" target="_blank"
+                       class="btn btn-sm btn-outline-primary w-100 mt-1">
+                        <i class="bi bi-file-medical me-1"></i>عرض الروشتة
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% else %}
+    <div class="text-center text-muted py-5">
+        <i class="bi bi-calendar-x display-5 d-block mb-2 opacity-25"></i>
+        {% if date_filter %}
+        مفيش زيارات في يوم {{ date_filter }}
+        {% else %}
+        لا توجد زيارات مسجلة لهذا المريض
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

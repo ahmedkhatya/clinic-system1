@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}إدارة العيادات{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <h4 class="fw-bold mb-4"><i class="bi bi-hospital text-primary me-2"></i>إدارة العيادات</h4>
+    <div class="row g-4">
+        <!-- فورم إضافة -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white"><i class="bi bi-plus-circle-fill me-1"></i>إضافة عيادة جديدة</div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="add">
+                        <div class="mb-2"><label>اسم العيادة *</label><input type="text" name="name" class="form-control" required></div>
+                        <div class="mb-2"><label>اسم الدكتور</label><input type="text" name="doctor_name" class="form-control"></div>
+                        <div class="mb-2"><label>التخصص</label><input type="text" name="specialty" class="form-control"></div>
+                        <div class="mb-2"><label>العنوان</label><input type="text" name="address" class="form-control"></div>
+                        <div class="mb-2"><label>التليفون</label><input type="text" name="phone" class="form-control"></div>
+                        <div class="mb-2"><label>مواعيد العمل</label><input type="text" name="work_hours" class="form-control" placeholder="6م - 11م"></div>
+                        <div class="mb-3"><label>أيام العمل</label><input type="text" name="work_days" class="form-control" placeholder="يومياً عدا الجمعة"></div>
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-lg me-1"></i>إضافة</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- قائمة العيادات -->
+        <div class="col-lg-8">
+            <div class="row g-3">
+                {% for c in clinics %}
+                <div class="col-12">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h5 class="fw-bold mb-1">{{ c.name }}</h5>
+                                    <p class="text-muted small mb-1">
+                                        <i class="bi bi-person-badge me-1"></i>{{ c.doctor_name or '—' }} &nbsp;
+                                        <i class="bi bi-geo-alt me-1"></i>{{ c.address or '—' }} &nbsp;
+                                        <i class="bi bi-telephone me-1"></i>{{ c.phone or '—' }}
+                                    </p>
+                                    <p class="text-muted small mb-0">
+                                        <i class="bi bi-clock me-1"></i>{{ c.work_hours or '—' }} &nbsp;|&nbsp; {{ c.work_days or '—' }}
+                                    </p>
+                                </div>
+                                <div class="d-flex gap-2">
+                                    <button class="btn btn-sm btn-outline-primary"
+                                            onclick="openEdit({{ c.id }}, '{{ c.name }}', '{{ c.doctor_name or '' }}', '{{ c.specialty or '' }}', '{{ c.address or '' }}', '{{ c.phone or '' }}', '{{ c.work_hours or '' }}', '{{ c.work_days or '' }}')">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="POST" onsubmit="return confirm('هتمسح {{ c.name }}؟')">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="clinic_id" value="{{ c.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12 text-center text-muted py-4">لا توجد عيادات مسجلة</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal تعديل -->
+<div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+        <div class="modal-header"><h5 class="modal-title fw-bold">تعديل بيانات العيادة</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <form method="POST">
+            <input type="hidden" name="action" value="edit">
+            <input type="hidden" name="clinic_id" id="edit_id">
+            <div class="modal-body row g-2">
+                <div class="col-12"><label>اسم العيادة</label><input type="text" name="name" id="edit_name" class="form-control" required></div>
+                <div class="col-6"><label>اسم الدكتور</label><input type="text" name="doctor_name" id="edit_doc" class="form-control"></div>
+                <div class="col-6"><label>التخصص</label><input type="text" name="specialty" id="edit_spec" class="form-control"></div>
+                <div class="col-12"><label>العنوان</label><input type="text" name="address" id="edit_addr" class="form-control"></div>
+                <div class="col-6"><label>التليفون</label><input type="text" name="phone" id="edit_phone" class="form-control"></div>
+                <div class="col-6"><label>مواعيد العمل</label><input type="text" name="work_hours" id="edit_hours" class="form-control"></div>
+                <div class="col-12"><label>أيام العمل</label><input type="text" name="work_days" id="edit_days" class="form-control"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="submit" class="btn btn-primary">حفظ التعديلات</button>
+            </div>
+        </form>
+    </div></div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function openEdit(id, name, doc, spec, addr, phone, hours, days) {
+    document.getElementById('edit_id').value    = id;
+    document.getElementById('edit_name').value  = name;
+    document.getElementById('edit_doc').value   = doc;
+    document.getElementById('edit_spec').value  = spec;
+    document.getElementById('edit_addr').value  = addr;
+    document.getElementById('edit_phone').value = phone;
+    document.getElementById('edit_hours').value = hours;
+    document.getElementById('edit_days').value  = days;
+    new bootstrap.Modal(document.getElementById('editModal')).show();
+}
+</script>
+{% endblock %}

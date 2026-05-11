@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}إدارة المستخدمين{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <h4 class="fw-bold mb-4"><i class="bi bi-people-fill text-primary me-2"></i>إدارة المستخدمين</h4>
+    <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white"><i class="bi bi-person-plus-fill me-1"></i>إضافة مستخدم</div>
+                <div class="card-body">
+                    <form method="POST">
+                        <input type="hidden" name="action" value="add">
+                        <div class="mb-2"><label>الاسم</label><input type="text" name="name" class="form-control" required></div>
+                        <div class="mb-2"><label>اسم المستخدم</label><input type="text" name="username" class="form-control" required></div>
+                        <div class="mb-2"><label>كلمة المرور</label><input type="password" name="password" class="form-control" required></div>
+                        <div class="mb-2">
+                            <label>الدور</label>
+                            <select name="role" class="form-select" required onchange="toggleClinic(this.value)">
+                                <option value="doctor">طبيب</option>
+                                <option value="nurse">ممرضة / استقبال</option>
+                                <option value="superadmin">Super Admin</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="clinic_field">
+                            <label>العيادة</label>
+                            <select name="clinic_id" class="form-select">
+                                <option value="">— اختر العيادة —</option>
+                                {% for c in clinics %}
+                                <option value="{{ c.id }}">{{ c.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-lg me-1"></i>إضافة</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">المستخدمين</div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead><tr><th>الاسم</th><th>اسم المستخدم</th><th>الدور</th><th>العيادة</th><th>حذف</th></tr></thead>
+                        <tbody>
+                            {% for u in users %}
+                            <tr>
+                                <td class="fw-bold">{{ u.name }}</td>
+                                <td><code>{{ u.username }}</code></td>
+                                <td>
+                                    {% if u.role == 'superadmin' %}<span class="badge bg-danger">Super Admin</span>
+                                    {% elif u.role == 'doctor' %}<span class="badge bg-primary">طبيب</span>
+                                    {% else %}<span class="badge bg-secondary">ممرضة</span>{% endif %}
+                                </td>
+                                <td class="small text-muted">{{ u.clinic.name if u.clinic else '—' }}</td>
+                                <td>
+                                    {% if u.id != current_user.id %}
+                                    <form method="POST" onsubmit="return confirm('هتمسح {{ u.name }}؟')">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="user_id" value="{{ u.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                    {% else %}<span class="text-muted small">(أنت)</span>{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script>
+function toggleClinic(role) {
+    document.getElementById('clinic_field').style.display = role === 'superadmin' ? 'none' : 'block';
+}
+</script>
+{% endblock %}

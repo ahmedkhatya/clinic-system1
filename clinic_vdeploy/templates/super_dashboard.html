@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}لوحة التحكم الرئيسية{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <h4 class="fw-bold mb-4"><i class="bi bi-grid-3x3-gap-fill text-primary me-2"></i>لوحة التحكم — كل العيادات</h4>
+
+    <div class="row g-4">
+        {% for s in stats %}
+        <div class="col-md-6 col-xl-4">
+            <div class="card h-100 shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-hospital-fill me-2"></i>{{ s.clinic.name }}</span>
+                    <a href="{{ url_for('clinic_detail', clinic_id=s.clinic.id) }}"
+                       class="btn btn-sm btn-light text-primary">تفاصيل</a>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        <i class="bi bi-person-badge me-1"></i>{{ s.clinic.doctor_name or '—' }} &nbsp;|&nbsp;
+                        <i class="bi bi-heart-pulse me-1"></i>{{ s.clinic.specialty or '—' }}
+                    </p>
+                    <div class="row g-2 text-center">
+                        <div class="col-4">
+                            <div class="stat-card" style="background:linear-gradient(135deg,#1a6eb5,#2196f3)">
+                                <div class="stat-num">{{ s.today }}</div>
+                                <div class="stat-label">زيارات اليوم</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-card" style="background:linear-gradient(135deg,#8e44ad,#9b59b6)">
+                                <div class="stat-num">{{ s.patients }}</div>
+                                <div class="stat-label">إجمالي المرضى</div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="stat-card" style="background:linear-gradient(135deg,#1a9e6a,#27ae60)">
+                                <div class="stat-num">{{ "%.0f"|format(s.revenue) }}</div>
+                                <div class="stat-label">الإيرادات ج</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% if s.low > 0 %}
+                    <div class="alert alert-warning mt-3 mb-0 py-2 small">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        {{ s.low }} صنف في المخزن وصل للحد الأدنى
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-transparent d-flex gap-2">
+                    <a href="{{ url_for('manage_inventory', clinic_id=s.clinic.id) }}" class="btn btn-sm btn-outline-secondary flex-fill">
+                        <i class="bi bi-box-seam me-1"></i>المخزن
+                    </a>
+                    <a href="{{ url_for('manage_finances', clinic_id=s.clinic.id) }}" class="btn btn-sm btn-outline-secondary flex-fill">
+                        <i class="bi bi-cash-coin me-1"></i>المالية
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="col-12 text-center text-muted py-5">
+            <i class="bi bi-hospital display-3 opacity-25 d-block mb-3"></i>
+            لا توجد عيادات مسجلة بعد —
+            <a href="{{ url_for('manage_clinics') }}">أضف عيادة الآن</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

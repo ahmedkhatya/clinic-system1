@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}قائمة اليوم{% endblock %}
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+        <div>
+            <h4 class="fw-bold mb-0"><i class="bi bi-clipboard2-pulse-fill text-primary me-2"></i>قائمة مرضى اليوم</h4>
+            <small class="text-muted">{{ clinic.name }}</small>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
+            <span class="badge bg-warning text-dark fs-6 px-3" id="cnt_waiting">
+                <i class="bi bi-hourglass-split me-1"></i><span id="w_num">{{ visits|selectattr('0.status','equalto','waiting')|list|length }}</span> انتظار
+            </span>
+            <span class="badge bg-success fs-6 px-3" id="cnt_done">
+                <i class="bi bi-check-circle me-1"></i><span id="d_num">{{ visits|selectattr('0.status','equalto','done')|list|length }}</span> تم
+            </span>
+            <span class="live-dot ms-1" title="تحديث كل 10 ثواني"></span>
+            <small class="text-muted" id="last_update"></small>
+        </div>
+    </div>
+
+    <!-- انتظار -->
+    <h6 class="fw-bold text-warning mb-2"><i class="bi bi-hourglass-split me-1"></i>في الانتظار</h6>
+    <div class="card shadow-sm mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>#</th><th>المريض</th><th>السن</th><th>نوع الزيارة</th><th>الوقت</th><th>ملف المريض</th><th>إجراء</th></tr></thead>
+                    <tbody id="waitingBody">
+                        {% for visit, patient in visits if visit.status == 'waiting' %}
+                        <tr>
+                            <td class="fw-bold text-muted">{{ loop.index }}</td>
+                            <td>
+                                <strong>{{ patient.name }}</strong>
+                                {% if patient.notes %}<br><small class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>{{ patient.notes }}</small>{% endif %}
+                            </td>
+                            <td class="text-muted small">{{ patient.age or '—' }} سنة</td>
+                            <td><span class="badge bg-light text-dark border">{{ visit.visit_type }}</span></td>
+                            <td class="text-muted small">{{ visit.visit_date.strftime('%I:%M %p') }}</td>
+                            <td>
+                                <a href="{{ url_for('patient_history', patient_id=patient.id) }}" class="btn btn-sm btn-outline-info" title="ملف المريض">
+                                    <i class="bi bi-folder2-open"></i>
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('examine_patient', visit_id=visit.id) }}" class="btn btn-sm btn-primary">
+                                    <i class="bi bi-stethoscope me-1"></i>كشف
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" class="text-center text-muted py-3">
+                            <i class="bi bi-check-circle text-success me-1"></i>مفيش انتظار دلوقتي
+                        </td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- تم الكشف -->
+    <h6 class="fw-bold text-success mb-2"><i class="bi bi-check-circle me-1"></i>تم الكشف</h6>
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead><tr><th>#</th><th>المريض</th><th>السن</th><th>نوع الزيارة</th><th>الوقت</th><th>ملف المريض</th><th>الروشتة</th></tr></thead>
+                    <tbody id="doneBody">
+                        {% for visit, patient in visits if visit.status == 'done' %}
+                        <tr>
+                            <td class="fw-bold text-muted">{{ loop.index }}</td>
+                            <td><strong>{{ patient.name }}</strong></td>
+                            <td class="text-muted small">{{ patient.age or '—' }} سنة</td>
+                            <td><span class="badge bg-light text-dark border">{{ visit.visit_type }}</span></td>
+                            <td class="text-muted small">{{ visit.visit_date.strftime('%I:%M %p') }}</td>
+                            <td>
+                                <a href="{{ url_for('patient_history', patient_id=patient.id) }}" class="btn btn-sm btn-outline-info" title="ملف المريض">
+                                    <i class="bi bi-folder2-open"></i>
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('print_prescription', visit_id=visit.id) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                    <i class="bi bi-file-medical"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr><td colspan="7" class="text-center text-muted py-3">لا يوجد كشوفات منتهية اليوم</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function refreshDocQueue() {
+    try {
+        const res  = await fetch('/api/doctor_queue');
+        if (!res.ok) return;
+        const rows = await res.json();
+
+        const waiting = rows.filter(r => r.status === 'waiting');
+        const done    = rows.filter(r => r.status === 'done');
+
+        // update counters
+        document.getElementById('w_num').textContent = waiting.length;
+        document.getElementById('d_num').textContent = done.length;
+
+        // update waiting table
+        const wb = document.getElementById('waitingBody');
+        wb.innerHTML = waiting.length ? waiting.map((r,i) => `
+            <tr>
+                <td class="fw-bold text-muted">${i+1}</td>
+                <td><strong>${r.patient}</strong>${r.notes ? `<br><small class="text-warning"><i class="bi bi-exclamation-triangle me-1"></i>${r.notes}</small>` : ''}</td>
+                <td class="text-muted small">${r.age||'—'} سنة</td>
+                <td><span class="badge bg-light text-dark border">${r.visit_type}</span></td>
+                <td class="text-muted small">${r.time}</td>
+                <td><a href="/doctor/patient/${r.patient_id}" class="btn btn-sm btn-outline-info"><i class="bi bi-folder2-open"></i></a></td>
+                <td><a href="${r.examine_url}" class="btn btn-sm btn-primary"><i class="bi bi-stethoscope me-1"></i>كشف</a></td>
+            </tr>`).join('')
+            : `<tr><td colspan="7" class="text-center text-muted py-3"><i class="bi bi-check-circle text-success me-1"></i>مفيش انتظار دلوقتي</td></tr>`;
+
+        // update done table
+        const db = document.getElementById('doneBody');
+        db.innerHTML = done.length ? done.map((r,i) => `
+            <tr>
+                <td class="fw-bold text-muted">${i+1}</td>
+                <td><strong>${r.patient}</strong></td>
+                <td class="text-muted small">${r.age||'—'} سنة</td>
+                <td><span class="badge bg-light text-dark border">${r.visit_type}</span></td>
+                <td class="text-muted small">${r.time}</td>
+                <td><a href="/doctor/patient/${r.patient_id}" class="btn btn-sm btn-outline-info"><i class="bi bi-folder2-open"></i></a></td>
+                <td><a href="/prescription/${r.id}" target="_blank" class="btn btn-sm btn-outline-secondary"><i class="bi bi-file-medical"></i></a></td>
+            </tr>`).join('')
+            : `<tr><td colspan="7" class="text-center text-muted py-3">لا يوجد كشوفات منتهية اليوم</td></tr>`;
+
+        // last update time
+        const now = new Date();
+        document.getElementById('last_update').textContent =
+            `آخر تحديث: ${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+
+    } catch(e) { console.error('Refresh error:', e); }
+}
+
+// شغّل فوراً ثم كل 10 ثواني
+refreshDocQueue();
+setInterval(refreshDocQueue, 10000);
+</script>
+{% endblock %}
