@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}إدارة المخزن{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h4 class="fw-bold mb-0"><i class="bi bi-box-seam text-warning me-2"></i>إدارة المخزن - {{ clinic.name }}</h4>
+        <a href="{{ url_for('super_dashboard') if current_user.role == 'superadmin' else url_for('doctor_dashboard') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-right me-1"></i> رجوع
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <!-- فورم الإضافة -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark fw-bold">
+                    <i class="bi bi-plus-circle-fill me-1"></i> إضافة صنف جديد
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('manage_inventory', clinic_id=clinic.id) }}" method="POST">
+                        <input type="hidden" name="action" value="add">
+                        <div class="mb-3">
+                            <label>اسم الصنف</label>
+                            <input type="text" name="name" class="form-control" placeholder="مثلاً: سرنجات 5cc" required>
+                        </div>
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label>الكمية الحالية</label>
+                                <input type="number" name="qty" class="form-control" min="0" required placeholder="0">
+                            </div>
+                            <div class="col-6">
+                                <label>الحد الأدنى</label>
+                                <input type="number" name="min" class="form-control" min="0" required placeholder="5">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label>الوحدة</label>
+                            <select name="unit" class="form-select">
+                                <option value="قطعة">قطعة</option>
+                                <option value="علبة">علبة</option>
+                                <option value="أمبول">أمبول</option>
+                                <option value="عبوة">عبوة</option>
+                                <option value="لفافة">لفافة</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100 fw-bold">
+                            <i class="bi bi-plus-lg me-1"></i> إضافة للمخزن
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- جدول المخزن -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white d-flex justify-content-between">
+                    <span><i class="bi bi-table me-1"></i> جميع الأصناف</span>
+                    <span class="badge bg-secondary">{{ items|length }} صنف</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>الصنف</th>
+                                    <th>الكمية</th>
+                                    <th>الحد الأدنى</th>
+                                    <th>الحالة</th>
+                                    <th>تحديث الكمية</th>
+                                    <th>حذف</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr {% if item.quantity <= item.min_quantity %}class="low-stock-row"{% endif %}>
+                                    <td class="fw-bold">{{ item.item_name }}</td>
+                                    <td>
+                                        <span class="fw-bold {% if item.quantity <= item.min_quantity %}text-danger{% else %}text-success{% endif %}">
+                                            {{ item.quantity }}
+                                        </span>
+                                        <span class="text-muted small">{{ item.unit or '' }}</span>
+                                    </td>
+                                    <td class="text-muted">{{ item.min_quantity }}</td>
+                                    <td>
+                                        {% if item.quantity <= item.min_quantity %}
+                                        <span class="badge bg-danger"><i class="bi bi-exclamation-triangle me-1"></i>ناقص</span>
+                                        {% else %}
+                                        <span class="badge bg-success"><i class="bi bi-check me-1"></i>كافي</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <form method="POST" class="d-flex gap-1">
+                                            <input type="hidden" name="action" value="update_qty">
+                                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                                            <input type="number" name="new_qty" class="form-control form-control-sm"
+                                                   value="{{ item.quantity }}" min="0" style="width:80px">
+                                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                                <i class="bi bi-check"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                    <td>
+                                        <form method="POST" onsubmit="return confirm('هتمسح {{ item.item_name }}؟')">
+                                            <input type="hidden" name="action" value="delete">
+                                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="6" class="text-center text-muted py-4">
+                                        المخزن فاضي، ابدأ بإضافة الأصناف
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>روشتة - {{ patient.name }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f5f5f5; margin: 0; padding: 20px; color: #333; }
+        .wrapper { width: 780px; margin: 0 auto; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,.12); }
+
+        /* Header */
+        .header { background: linear-gradient(135deg, #1a6eb5, #2196f3); padding: 24px 32px; display: flex; justify-content: space-between; align-items: flex-start; }
+        .doctor-ar h2 { margin: 0; font-size: 26px; color: #fff; font-weight: 800; }
+        .doctor-ar p { margin: 4px 0; color: rgba(255,255,255,.85); font-size: 14px; }
+        .doctor-en { text-align: left; }
+        .doctor-en h2 { margin: 0; font-size: 22px; color: #fff; font-weight: 700; font-family: serif; }
+        .doctor-en p { margin: 4px 0; color: rgba(255,255,255,.75); font-size: 13px; text-align: left; }
+
+        /* Patient bar */
+        .patient-bar { display: flex; gap: 0; background: #f0f8ff; border-bottom: 2px solid #1a6eb5; }
+        .patient-bar .field { flex: 1; padding: 12px 16px; border-left: 1px solid #d0e8f8; }
+        .patient-bar .field:last-child { border-left: none; }
+        .patient-bar .label { font-size: 11px; color: #888; text-transform: uppercase; letter-spacing: .05em; }
+        .patient-bar .value { font-weight: 700; color: #1a2a40; font-size: 15px; }
+
+        /* Body */
+        .body { padding: 32px; min-height: 450px; position: relative; }
+        .rx { font-size: 72px; color: #1a6eb5; opacity: .15; position: absolute; top: 16px; right: 24px; font-family: 'Times New Roman'; line-height: 1; }
+        .diagnosis { font-size: 18px; color: #1a2a40; line-height: 1.9; white-space: pre-wrap; padding-right: 48px; }
+
+        /* Follow-up */
+        .followup { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 8px; padding: 12px 16px; margin-top: 24px; display: flex; align-items: center; gap: 8px; }
+        .followup .icon { font-size: 22px; }
+        .followup strong { color: #166534; }
+
+        /* Footer */
+        .footer { background: #1a2a40; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; }
+        .footer .contact { color: rgba(255,255,255,.8); font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+        .footer .contact span { display: flex; align-items: center; gap: 6px; }
+        .footer .hours { color: rgba(255,255,255,.6); font-size: 12px; text-align: left; }
+
+        /* Print button */
+        .print-bar { text-align: center; padding: 16px; background: #f0f4f8; }
+        .print-btn { background: #1a6eb5; color: #fff; border: none; padding: 10px 32px; border-radius: 8px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .2s; }
+        .print-btn:hover { background: #0f4d82; }
+
+        @media print {
+            body { background: none; padding: 0; }
+            .print-bar { display: none; }
+            .wrapper { box-shadow: none; border-radius: 0; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-bar no-print">
+        <button class="print-btn" onclick="window.print()">🖨️ طباعة الروشتة</button>
+    </div>
+
+    <div class="wrapper">
+        <!-- Header -->
+        <div class="header">
+            <div class="doctor-ar">
+                <h2>د. محمد يوسف</h2>
+                <p>أخصائي القلب والأوعية الدموية</p>
+                <p>ماجستير القلب والأمراض الباطنية</p>
+            </div>
+            <div class="doctor-en">
+                <h2>Dr. Mohamed Yousef</h2>
+                <p>M.B.BCH</p>
+                <p>Msc Cardiology</p>
+            </div>
+        </div>
+
+        <!-- Patient Info -->
+        <div class="patient-bar">
+            <div class="field">
+                <div class="label">اسم المريض</div>
+                <div class="value">{{ patient.name }}</div>
+            </div>
+            <div class="field">
+                <div class="label">السن</div>
+                <div class="value">{{ patient.age or '—' }} سنة</div>
+            </div>
+            <div class="field">
+                <div class="label">نوع الزيارة</div>
+                <div class="value">{{ visit.visit_type or '—' }}</div>
+            </div>
+            <div class="field">
+                <div class="label">تاريخ الكشف</div>
+                <div class="value">{{ visit.visit_date.strftime('%Y / %m / %d') }}</div>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="body">
+            <div class="rx">℞</div>
+            <div class="diagnosis">{{ visit.diagnosis or '' }}</div>
+
+            {% if visit.consultation_date %}
+            <div class="followup">
+                <span class="icon">📅</span>
+                <div>
+                    <strong>موعد المراجعة القادم:</strong>
+                    <span>{{ visit.consultation_date }}</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="contact">
+                <span>📍 شبرا الخيمة - ش 15 مايو - محطة الملف</span>
+                <span>📞 01093079334</span>
+            </div>
+            <div class="hours">يومياً من 6م إلى 11م<br>عدا الجمعة</div>
+        </div>
+    </div>
+</body>
+</html>

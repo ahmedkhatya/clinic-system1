@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}إدارة المستخدمين{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h4 class="fw-bold mb-0"><i class="bi bi-people-fill text-primary me-2"></i>إدارة المستخدمين</h4>
+        <a href="{{ url_for('super_dashboard') }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-right me-1"></i> رجوع
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <!-- فورم الإضافة -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white fw-bold">
+                    <i class="bi bi-person-plus-fill me-1"></i> إضافة موظف جديد
+                </div>
+                <div class="card-body">
+                    <form action="{{ url_for('manage_users') }}" method="POST">
+                        <input type="hidden" name="action" value="add">
+                        <div class="mb-3">
+                            <label>الاسم الكامل</label>
+                            <input type="text" name="name" class="form-control" placeholder="د. محمد أحمد" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>اسم المستخدم</label>
+                            <input type="text" name="username" class="form-control" placeholder="doctor2" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>كلمة المرور</label>
+                            <input type="password" name="password" class="form-control" placeholder="••••••" required>
+                        </div>
+                        <div class="mb-3">
+                            <label>الدور الوظيفي</label>
+                            <select name="role" class="form-select" required>
+                                <option value="doctor">طبيب</option>
+                                <option value="reception">استقبال</option>
+                                <option value="admin">مدير</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-person-check-fill me-1"></i> إضافة
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- قائمة المستخدمين -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <i class="bi bi-people me-1"></i> الفريق الطبي والإداري
+                </div>
+                <div class="card-body p-0">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>الاسم</th>
+                                <th>اسم المستخدم</th>
+                                <th>الدور</th>
+                                <th>حذف</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td class="fw-bold">{{ user.name }}</td>
+                                <td><code>{{ user.username }}</code></td>
+                                <td>
+                                    {% if user.role == 'admin' %}
+                                    <span class="badge bg-danger">مدير</span>
+                                    {% elif user.role == 'doctor' %}
+                                    <span class="badge bg-primary">طبيب</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">استقبال</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if user.id != current_user.id %}
+                                    <form method="POST" onsubmit="return confirm('هتمسح {{ user.name }}؟')">
+                                        <input type="hidden" name="action" value="delete">
+                                        <input type="hidden" name="user_id" value="{{ user.id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                    {% else %}
+                                    <span class="text-muted small">(أنت)</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

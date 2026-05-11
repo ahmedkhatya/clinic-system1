@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}نظام إدارة العيادات{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary:#1a6eb5; --primary-dark:#0f4d82; }
+        * { font-family:'Cairo',sans-serif; }
+        body { background:#f0f4f8; min-height:100vh; }
+        .top-navbar { background:linear-gradient(135deg,var(--primary-dark),var(--primary));
+            box-shadow:0 2px 10px rgba(0,0,0,.15); padding:.6rem 1.5rem;
+            position:sticky; top:0; z-index:1050; }
+        .top-navbar .brand { font-size:1.1rem; font-weight:800; color:#fff; text-decoration:none; }
+        .top-navbar .nav-link { color:rgba(255,255,255,.85)!important; font-weight:600;
+            padding:.3rem .7rem!important; border-radius:8px; transition:background .2s; font-size:.9rem; }
+        .top-navbar .nav-link:hover,
+        .top-navbar .nav-link.active { background:rgba(255,255,255,.18); color:#fff!important; }
+        .card { border:none; border-radius:16px; box-shadow:0 2px 12px rgba(0,0,0,.07); }
+        .card-header { border-radius:16px 16px 0 0!important; border-bottom:none; font-weight:700; padding:1rem 1.25rem; }
+        .stat-card { border-radius:18px; padding:1.4rem 1.25rem; color:#fff; position:relative; overflow:hidden; }
+        .stat-card::after { content:''; position:absolute; width:90px; height:90px; border-radius:50%;
+            background:rgba(255,255,255,.1); bottom:-25px; left:-15px; }
+        .stat-card .stat-num { font-size:2rem; font-weight:800; }
+        .stat-card .stat-label { font-size:.85rem; opacity:.85; }
+        .badge-waiting { background:#fff3cd; color:#856404; border-radius:20px; padding:.3em .7em; font-weight:700; font-size:.8rem; }
+        .badge-done    { background:#d1e7dd; color:#0a5232; border-radius:20px; padding:.3em .7em; font-weight:700; font-size:.8rem; }
+        .table th { font-weight:700; background:#f8fafc; color:#555; font-size:.83rem; }
+        .table td { vertical-align:middle; font-size:.9rem; }
+        .table tbody tr:hover { background:#f0f8ff; }
+        .btn { border-radius:10px; font-weight:600; }
+        .btn-primary { background:var(--primary); border-color:var(--primary); }
+        .btn-primary:hover { background:var(--primary-dark); border-color:var(--primary-dark); }
+        .form-control,.form-select { border-radius:10px; border:1.5px solid #d1d9e0; }
+        .form-control:focus,.form-select:focus { border-color:var(--primary); box-shadow:0 0 0 3px rgba(26,110,181,.15); }
+        label { font-weight:600; color:#444; font-size:.87rem; margin-bottom:.25rem; }
+        .flash-container { position:fixed; top:70px; left:50%; transform:translateX(-50%); z-index:9999; min-width:320px; max-width:500px; }
+        .low-stock-row { background:#fff5f5!important; }
+        .live-dot { width:8px; height:8px; background:#4ade80; border-radius:50%; display:inline-block; animation:pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+<nav class="top-navbar d-flex align-items-center justify-content-between">
+    <div class="d-flex align-items-center gap-3">
+        {% if current_user.is_authenticated %}
+            {% if current_user.clinic %}
+            <span class="brand"><i class="bi bi-hospital me-1"></i>{{ current_user.clinic.name }}</span>
+            {% else %}
+            <a class="brand" href="{{ url_for('super_dashboard') }}"><i class="bi bi-grid-3x3-gap me-1"></i>لوحة التحكم</a>
+            {% endif %}
+
+            {% if current_user.role == 'superadmin' %}
+                <a href="{{ url_for('super_dashboard') }}" class="nav-link {% if request.endpoint=='super_dashboard' %}active{% endif %}"><i class="bi bi-speedometer2 me-1"></i>الرئيسية</a>
+                <a href="{{ url_for('manage_clinics') }}" class="nav-link {% if request.endpoint=='manage_clinics' %}active{% endif %}"><i class="bi bi-hospital me-1"></i>العيادات</a>
+                <a href="{{ url_for('manage_users') }}" class="nav-link {% if request.endpoint=='manage_users' %}active{% endif %}"><i class="bi bi-people me-1"></i>المستخدمين</a>
+            {% elif current_user.role == 'doctor' %}
+                <a href="{{ url_for('doctor_dashboard') }}" class="nav-link {% if request.endpoint=='doctor_dashboard' %}active{% endif %}"><i class="bi bi-clipboard2-pulse me-1"></i>قائمة اليوم</a>
+                <a href="{{ url_for('doctor_search') }}" class="nav-link {% if request.endpoint=='doctor_search' %}active{% endif %}"><i class="bi bi-search me-1"></i>بحث مريض</a>
+                <a href="{{ url_for('manage_inventory', clinic_id=current_user.clinic_id) }}" class="nav-link {% if request.endpoint=='manage_inventory' %}active{% endif %}"><i class="bi bi-box-seam me-1"></i>المخزن</a>
+                <a href="{{ url_for('manage_finances', clinic_id=current_user.clinic_id) }}" class="nav-link {% if request.endpoint=='manage_finances' %}active{% endif %}"><i class="bi bi-cash-coin me-1"></i>المالية</a>
+            {% elif current_user.role == 'nurse' %}
+                <a href="{{ url_for('nurse_dashboard') }}" class="nav-link {% if request.endpoint=='nurse_dashboard' %}active{% endif %}"><i class="bi bi-person-plus me-1"></i>الاستقبال</a>
+            {% endif %}
+        {% endif %}
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        {% if current_user.is_authenticated %}
+        <span class="live-dot" title="مباشر"></span>
+        <span class="text-white-50 small d-none d-md-inline">{{ current_user.name }}</span>
+        <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-light rounded-pill"><i class="bi bi-box-arrow-left me-1"></i>خروج</a>
+        {% endif %}
+    </div>
+</nav>
+<div class="flash-container">
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+  <div class="alert alert-{{ cat }} alert-dismissible fade show shadow-sm border-0 rounded-3" role="alert">
+    {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endfor %}
+{% endwith %}
+</div>
+<main class="py-4 px-3">{% block content %}{% endblock %}</main>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>
